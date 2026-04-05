@@ -1,0 +1,31 @@
+1. Haptic & Audio Overhaul (The "Pop" Feel):
+​Haptics: Increase the vibration intensity for button selections. Use navigator.vibrate([20, 10, 20]) for a "premium double-pulse" feel on final answers.
+​Audio: Replace the soft click with a "High-End UI Pop" sound. Use the Web Audio API to create a resonant 880Hz sine wave that decays into a 440Hz tone over 100ms. It should sound like a physical bubble popping or a premium glass tap.
+​2. The Narrowing Logic (8 Deep Questions):
+Instead of Yes/No, provide 4 options for each: [Never / Rarely / Often / Constant]. Each answer carries a numerical weight (0 to 3).
+​Question 1 (Cognitive Load): "When focusing on a single task, does your mind feel like it's 'skipping' or clouding over?"
+​Question 2 (Emotional Resonance): "Do you feel a sense of 'hollowness' or a lack of reaction to things that usually make you happy?"
+​Question 3 (Social Friction): "Does the thought of interacting with others feel like a physical exhaustion rather than a social choice?"
+​Question 4 (Somatic Feedback): "Are you experiencing a localized pressure in your temples or a 'tight band' sensation around your chest?"
+​Question 5 (Sleep Architecture): "Do you wake up between 3 AM - 5 AM with a sudden 'jolt' of alertness or racing thoughts?"
+​Question 6 (Decision Fatigue): "Do simple choices (like what to eat or wear) feel overwhelming or paralyzing today?"
+​Question 7 (Hyper-Vigilance): "Are you constantly 'scanning' your environment or your own body for signs of something going wrong?"
+​Question 8 (Future Projection): "When looking at the next 48 hours, do you feel a sense of 'dread' or 'neutrality'?"
+​3. The Result Synthesis (The "Neuro-Report"):
+The app must not give a one-word answer. It must provide a "Symptom Cluster Analysis" based on the total score:
+​0-6: "Neural Equilibrium" (Balanced).
+​7-14: "Acute Cognitive Overload" (Stress-based).
+​15-20: "Persistent Neural Fatigue" (Depressive-leaning).
+​21+: "Hyper-Reactive Anxiety State" (High Anxiety).
+​4. The "Three-Subdivision" Solution Layout:
+Display the results in three Bento Cards:
+​[Root Catalysts]: (Example: "Your answers suggest a disruption in your Dopamine/Cortisol balance due to over-stimulation.")
+​[Immediate Calibration]: (Example: "Implement '4-7-8' breathing and a 12-hour digital fast.")
+​[Neuro-Alignment]: "Your profile matches symptoms of [Category]. Click below to understand the science of this state."
+​5. Design Polish:
+​Ensure the "DEVELOPED BY AARUSH" watermark glows slightly when a question is answered.
+​Add a "Scanning..." progress ring that fills up as the user moves through the 8 questions.
+​Why this is "High-End":
+​Narrowing: By asking about "Temples" or "3 AM wakeups," the app feels like it actually knows what the user is going through.
+​Tactile: The "Double Pulse" vibration makes the app feel like a piece of high-tech hardware in the user's hand.
+​Accuracy: Using a 0–24 point scale is much more accurate than a simple "Yes/No" quiz.

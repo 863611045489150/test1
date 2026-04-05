@@ -429,6 +429,46 @@
     opacity: 1;
   }
 
+  .tag-green {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    color: #6EE7B7;
+  }
+
+  .tag-amber {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    color: #FCD34D;
+  }
+
+  .tag-orange {
+    background: rgba(249, 115, 22, 0.12);
+    border: 1px solid rgba(249, 115, 22, 0.25);
+    color: #FDBA74;
+  }
+
+  .tag-red {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #FCA5A5;
+  }
+
+  .scanning-dot {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #8B5CF6, #D946EF);
+    animation: scanBlink 1.2s ease-in-out infinite;
+    flex-shrink: 0;
+    margin-bottom: 1px;
+  }
+
+  @keyframes scanBlink {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 6px rgba(217,70,239,0.8); }
+  }
+
   ::-webkit-scrollbar {
     width: 4px;
   }

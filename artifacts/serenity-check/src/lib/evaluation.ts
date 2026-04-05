@@ -7,50 +7,61 @@ export interface Question {
   options: { value: string; label: string; weight: number }[];
 }
 
+const FREQUENCY_OPTIONS = [
+  { value: 'never', label: 'Never', weight: 0 },
+  { value: 'rarely', label: 'Rarely', weight: 1 },
+  { value: 'often', label: 'Often', weight: 2 },
+  { value: 'constant', label: 'Constantly', weight: 3 },
+];
+
 export const QUESTIONS: Question[] = [
   {
-    id: 'cognitive',
-    category: 'Cognitive Fog',
-    text: 'How often do you find it difficult to focus, or catch yourself making unusual mistakes?',
-    options: [
-      { value: 'rarely', label: 'Rarely — my focus feels clear most of the time', weight: 0 },
-      { value: 'sometimes', label: 'Sometimes — I notice occasional lapses in concentration', weight: 1 },
-      { value: 'often', label: 'Often — I struggle to stay on task throughout the day', weight: 2 },
-      { value: 'constantly', label: 'Constantly — my mind feels clouded and scattered', weight: 3 },
-    ],
+    id: 'cognitive_load',
+    category: 'Cognitive Load',
+    text: 'When focusing on a single task, does your mind feel like it\'s "skipping" or clouding over?',
+    options: FREQUENCY_OPTIONS,
   },
   {
-    id: 'social',
-    category: 'Social State',
-    text: 'How is your desire to engage with others or fulfil your responsibilities?',
-    options: [
-      { value: 'engaged', label: 'I feel connected and present in my relationships', weight: 0 },
-      { value: 'slightly_withdrawn', label: 'Slightly withdrawn — I prefer quieter moments lately', weight: 1 },
-      { value: 'avoiding', label: 'I\'m actively avoiding people and putting off responsibilities', weight: 2 },
-      { value: 'disconnected', label: 'Completely disconnected — people feel exhausting to be around', weight: 3 },
-    ],
+    id: 'emotional_resonance',
+    category: 'Emotional Resonance',
+    text: 'Do you feel a sense of "hollowness" or a lack of reaction to things that usually make you happy?',
+    options: FREQUENCY_OPTIONS,
   },
   {
-    id: 'physical',
-    category: 'Physical Echoes',
-    text: 'Are you experiencing physical symptoms like headaches, muscle tension, or crying spells?',
-    options: [
-      { value: 'none', label: 'None — my body feels calm and at ease', weight: 0 },
-      { value: 'mild', label: 'Mild — occasional tension or tiredness', weight: 1 },
-      { value: 'moderate', label: 'Moderate — headaches and tension are frequent', weight: 2 },
-      { value: 'severe', label: 'Severe — frequent crying, persistent pain or tightness', weight: 3 },
-    ],
+    id: 'social_friction',
+    category: 'Social Friction',
+    text: 'Does the thought of interacting with others feel like a physical exhaustion rather than a social choice?',
+    options: FREQUENCY_OPTIONS,
   },
   {
-    id: 'sleep',
-    category: 'Sleep & Energy',
-    text: 'How restorative has your sleep been? How do you feel when you wake up?',
-    options: [
-      { value: 'restorative', label: 'I wake up feeling rested and ready for the day', weight: 0 },
-      { value: 'mixed', label: 'Mixed — some nights are good, others leave me tired', weight: 1 },
-      { value: 'poor', label: 'Poor — I wake up exhausted despite sleeping enough', weight: 2 },
-      { value: 'severe', label: 'Severely disrupted — I can\'t sleep or sleep too much', weight: 3 },
-    ],
+    id: 'somatic_feedback',
+    category: 'Somatic Feedback',
+    text: 'Are you experiencing a localized pressure in your temples or a "tight band" sensation around your chest?',
+    options: FREQUENCY_OPTIONS,
+  },
+  {
+    id: 'sleep_architecture',
+    category: 'Sleep Architecture',
+    text: 'Do you wake up between 3 AM – 5 AM with a sudden "jolt" of alertness or racing thoughts?',
+    options: FREQUENCY_OPTIONS,
+  },
+  {
+    id: 'decision_fatigue',
+    category: 'Decision Fatigue',
+    text: 'Do simple choices (like what to eat or wear) feel overwhelming or paralyzing today?',
+    options: FREQUENCY_OPTIONS,
+  },
+  {
+    id: 'hyper_vigilance',
+    category: 'Hyper-Vigilance',
+    text: 'Are you constantly "scanning" your environment or your own body for signs of something going wrong?',
+    options: FREQUENCY_OPTIONS,
+  },
+  {
+    id: 'future_projection',
+    category: 'Future Projection',
+    text: 'When looking at the next 48 hours, do you feel a sense of "dread" or "neutrality"?',
+    options: FREQUENCY_OPTIONS,
   },
 ];
 
@@ -58,15 +69,16 @@ export interface EvaluationResult {
   score: number;
   maxScore: number;
   percentage: number;
-  severity: 'minimal' | 'mild' | 'moderate' | 'severe';
+  severity: 'equilibrium' | 'overload' | 'fatigue' | 'anxiety';
   condition: string;
+  conditionLabel: string;
   conditionDetail: string;
-  catalysts: string[];
+  catalysts: { title: string; description: string }[];
   strategies: string[];
-  symptomAlignment: string;
+  neuroAlignment: string;
 }
 
-function computeResult(answers: Record<string, string>): EvaluationResult {
+export function computeResult(answers: Record<string, string>): EvaluationResult {
   let score = 0;
   const maxScore = QUESTIONS.length * 3;
 
@@ -80,58 +92,85 @@ function computeResult(answers: Record<string, string>): EvaluationResult {
 
   let severity: EvaluationResult['severity'];
   let condition: string;
+  let conditionLabel: string;
   let conditionDetail: string;
-  let catalysts: string[];
+  let catalysts: EvaluationResult['catalysts'];
   let strategies: string[];
-  let symptomAlignment: string;
+  let neuroAlignment: string;
 
-  if (percentage <= 20) {
-    severity = 'minimal';
-    condition = 'Situational Stress';
-    conditionDetail = 'Situational stress refers to temporary psychological strain arising from specific life events or transitions — such as deadlines, relationship dynamics, or life changes. Unlike clinical conditions, it typically resolves as circumstances improve. The brain\'s stress response (HPA axis) releases cortisol, which heightens alertness but can feel overwhelming. Research shows that targeted cognitive and somatic strategies significantly accelerate recovery.';
-    catalysts = ['Environmental pressures', 'Short-term workload spikes', 'Minor interpersonal friction'];
-    strategies = [
-      'Box Breathing (4-4-4-4) to activate the parasympathetic system',
-      'Nature walks for 20+ minutes to lower cortisol',
-      'Digital detox windows — no screens 1 hour before bed',
+  if (score <= 6) {
+    severity = 'equilibrium';
+    condition = 'Neural Equilibrium';
+    conditionLabel = 'Balanced';
+    conditionDetail = 'Neural Equilibrium represents a state in which the brain\'s major regulatory systems — dopaminergic reward circuits, the HPA stress axis, and the prefrontal cortex\'s executive networks — are operating in relative homeostasis. Research in affective neuroscience shows that this state is associated with optimal cortisol diurnal rhythms, coherent default mode network activity during rest, and efficient task-switching in the anterior cingulate cortex. Maintaining this state requires consistent sleep architecture, nutritional sufficiency, and appropriate social engagement. While this profile reflects current balance, neurological equilibrium can shift rapidly under sustained environmental pressure.';
+    catalysts = [
+      { title: 'Dopamine / Cortisol Harmony', description: 'Your reward-stress axis is operating within normal parameters. No significant dysregulation detected.' },
+      { title: 'Baseline Cognitive Stability', description: 'Executive function and attentional systems appear intact, with minimal interference from lower brain regions.' },
     ];
-    symptomAlignment = 'Situational Stress or Mild Anxiety';
-  } else if (percentage <= 45) {
-    severity = 'mild';
-    condition = 'Burnout';
-    conditionDetail = 'Burnout is a state of chronic stress that leads to physical and emotional exhaustion, cynicism, and feelings of ineffectiveness. Identified by psychologist Herbert Freudenberger and later systematized by Christina Maslach, it\'s recognized by the WHO as an occupational phenomenon. Neurologically, prolonged burnout depletes dopamine and norepinephrine systems, impairing motivation and executive function. Unlike depression, burnout typically traces back to identifiable environmental demands.';
-    catalysts = ['Sustained high-demand environments', 'Lack of recovery time', 'Emotional labour without support', 'Poor work-life boundaries'];
     strategies = [
-      'Sleep Hygiene Protocol — consistent bedtime, cool dark room, no caffeine after 2pm',
-      'Structured rest blocks — treat rest as a non-negotiable appointment',
-      'Single-tasking — one focused task at a time to reduce cognitive load',
-      'Brief journaling — 5 minutes externalizing thoughts before sleep',
+      'Sustain your current rhythms — consistency is the foundation of neural health',
+      'Cold exposure (cold shower 30–60s) to reinforce norepinephrine regulation',
+      'Periodic dopamine fasting — reduce low-effort stimulation to preserve reward sensitivity',
+      'Proactive journaling to maintain emotional clarity before pressure accumulates',
     ];
-    symptomAlignment = 'Burnout Syndrome or Adjustment Disorder';
-  } else if (percentage <= 70) {
-    severity = 'moderate';
-    condition = 'Acute Anxiety';
-    conditionDetail = 'Acute anxiety involves persistent, disproportionate worry and physiological arousal that interferes with daily functioning. It activates the amygdala\'s threat-detection system, flooding the body with adrenaline and keeping the nervous system in a near-constant state of alert. Generalized Anxiety Disorder (GAD) affects approximately 3.1% of adults globally. Evidence-based treatments including CBT and mindfulness-based stress reduction show strong efficacy. Seeking a licensed therapist is strongly recommended at this level.';
-    catalysts = ['Chronic uncertainty or instability', 'Unprocessed past stressors', 'Hyperactivated nervous system', 'Insufficient support systems'];
+    neuroAlignment = 'Neural Equilibrium — Balanced Autonomic State';
+  } else if (score <= 14) {
+    severity = 'overload';
+    condition = 'Acute Cognitive Overload';
+    conditionLabel = 'Stress-based';
+    conditionDetail = 'Acute Cognitive Overload occurs when the prefrontal cortex is subjected to sustained attentional demand without adequate recovery cycles, leading to a measurable decline in working memory capacity and executive function. Neurologically, this state involves elevated norepinephrine and moderate cortisol release, which initially sharpens focus but progressively narrows cognitive bandwidth. The brain\'s anterior insula — responsible for interoceptive awareness — becomes hyperactive, amplifying awareness of internal bodily signals. This explains somatic symptoms such as temporal pressure and chest tightness. Research from the Karolinska Institute links this pattern to over-stimulation of the default mode network during intended rest periods.';
+    catalysts = [
+      { title: 'Dopamine / Cortisol Imbalance', description: 'Your answers suggest a disruption in your Dopamine/Cortisol balance due to over-stimulation and insufficient neural recovery.' },
+      { title: 'Prefrontal Bandwidth Depletion', description: 'Decision fatigue signals that your prefrontal cortex is resource-constrained, reducing capacity for nuanced judgment.' },
+      { title: 'Sympathetic Nervous System Bias', description: 'Mild somatic indicators suggest your autonomic system is tilting toward sustained low-grade activation.' },
+    ];
     strategies = [
-      'Grounding Technique — 5-4-3-2-1 sensory anchoring to interrupt anxiety spirals',
-      'Progressive Muscle Relaxation — systematic tension-release from feet to face',
-      'Limit stimulant intake — caffeine and alcohol amplify anxiety symptoms',
-      'Consider speaking with a therapist trained in CBT or EMDR',
+      'Implement "4-7-8" breathing — 4s inhale, 7s hold, 8s exhale — activates the vagus nerve directly',
+      '12-hour digital fast starting after 6 PM to allow prefrontal cortex recovery during sleep',
+      'Single-task blocks: 25 minutes deep work, 10 minutes complete rest (no input)',
+      'Magnesium glycinate (120–400mg) before sleep — supports GABA receptor function',
     ];
-    symptomAlignment = 'Generalized Anxiety Disorder (GAD) or Acute Stress Response';
+    neuroAlignment = 'Acute Stress Response or Adjustment Disorder with Cognitive Features';
+  } else if (score <= 20) {
+    severity = 'fatigue';
+    condition = 'Persistent Neural Fatigue';
+    conditionLabel = 'Depressive-leaning';
+    conditionDetail = 'Persistent Neural Fatigue represents a neurological state in which chronic demands have begun to alter the structural and functional architecture of key brain regions. The hippocampus — central to memory consolidation and emotional regulation — shows reduced neuroplasticity under chronic cortisol exposure, documented in multiple longitudinal studies. Serotonin reuptake efficiency decreases, reducing tonic inhibitory control over the amygdala, which produces emotional blunting and "hollowness." Simultaneously, the mesocortical dopamine pathway loses tonic output, explaining the diminished pleasure response (anhedonia). Early-morning awakening patterns (3–5 AM) are a classical indicator of HPA axis hyperactivity in this state. Professional evaluation is strongly recommended.';
+    catalysts = [
+      { title: 'Serotonin / Dopamine Pathway Depletion', description: 'Emotional blunting and anhedonia indicate reduced tonic output in the mesolimbic and mesocortical dopamine circuits.' },
+      { title: 'HPA Axis Hyperactivation', description: 'Early-morning awakening patterns are a diagnostic marker of cortisol peak dysregulation associated with the HPA axis.' },
+      { title: 'Amygdala Disinhibition', description: 'Social friction and hyper-vigilance suggest reduced prefrontal inhibition of the amygdala\'s threat-processing circuits.' },
+      { title: 'Default Mode Network Intrusion', description: 'Cognitive "skipping" and rumination indicate uncontrolled DMN engagement during task-directed attention.' },
+    ];
+    strategies = [
+      'Seek a licensed clinical psychologist — this pattern benefits significantly from structured CBT',
+      'Behavioral Activation Protocol — schedule one achievable, value-aligned activity per day',
+      'Bright light therapy (10,000 lux, 20–30 min post-wake) to re-anchor circadian cortisol rhythms',
+      'Avoid decision-making during the first 60 minutes after waking — protect the prefrontal recharge window',
+      'Social micro-contact: brief, low-demand connection once per day to counter withdrawal amplification',
+    ];
+    neuroAlignment = 'Persistent Depressive Disorder (Dysthymia) or Burnout with Depressive Features';
   } else {
-    severity = 'severe';
-    condition = 'Clinical Depression';
-    conditionDetail = 'Clinical depression (Major Depressive Disorder) is a neurobiological condition characterized by persistent low mood, anhedonia, cognitive impairment, and somatic symptoms lasting two or more weeks. It involves disruptions in serotonin, dopamine, and norepinephrine signalling, as well as structural changes in the prefrontal cortex and hippocampus. It affects approximately 280 million people worldwide. Effective treatments include antidepressant pharmacotherapy, psychotherapy (particularly CBT and IPT), and lifestyle interventions. Professional evaluation is essential.';
-    catalysts = ['Neurochemical dysregulation', 'Chronic high-stress exposure', 'Genetic predisposition', 'Isolation and unmet relational needs', 'Traumatic or grief-related triggers'];
-    strategies = [
-      'Seek professional support immediately — a psychiatrist or clinical psychologist',
-      'Behavioural Activation — schedule one small, achievable activity daily',
-      'Sunlight exposure — 20+ minutes of morning light to regulate circadian rhythms',
-      'Reach out to a trusted person today — isolation amplifies depressive symptoms',
+    severity = 'anxiety';
+    condition = 'Hyper-Reactive Anxiety State';
+    conditionLabel = 'High Anxiety';
+    conditionDetail = 'The Hyper-Reactive Anxiety State represents a clinically significant pattern of amygdala hyperreactivity combined with dysregulated locus coeruleus output — the brain\'s primary norepinephrine nucleus. This produces the constellation of symptoms your responses indicate: hyper-vigilance (constant environmental scanning), somatic hyperarousal (temporal pressure, chest tightness), catastrophic future projection (dread about the next 48 hours), and early-morning cortisol surges causing abrupt awakening. fMRI studies show that in this state, the prefrontal cortex loses its inhibitory connection to the amygdala, creating a self-reinforcing threat-detection loop. This state corresponds closely to the DSM-5 criteria for Generalized Anxiety Disorder (GAD) or a severe Acute Stress Response. Immediate professional consultation is essential.';
+    catalysts = [
+      { title: 'Amygdala Hyperreactivity', description: 'Your threat-processing system is in an over-sensitized state, interpreting neutral stimuli as potential dangers.' },
+      { title: 'Locus Coeruleus Dysregulation', description: 'The brain\'s norepinephrine hub is over-firing, sustaining a state of physiological alertness that cannot self-terminate.' },
+      { title: 'Prefrontal-Amygdala Disconnection', description: 'The rational cortex has lost inhibitory control over emotional reactivity — decisions feel impossible, emotions feel overwhelming.' },
+      { title: 'Interoceptive Hypersensitivity', description: 'You are hyper-aware of bodily signals (heartbeat, breathing, pressure), which the brain is misinterpreting as threat cues.' },
+      { title: 'Anticipatory Cortisol Priming', description: 'The 3–5 AM awakening indicates your body is pre-releasing cortisol hours before waking — a sign of chronic threat anticipation.' },
     ];
-    symptomAlignment = 'Clinical Depression or Burnout with Depressive Features';
+    strategies = [
+      'Contact a psychiatrist or clinical psychologist today — this profile warrants professional assessment',
+      'Physiological Sigh: double-inhale through nose, long exhale through mouth — fastest known vagal activation',
+      'Cold water face immersion (10–30s) triggers the dive reflex, acutely lowering heart rate within seconds',
+      'Eliminate caffeine completely until the nervous system restabilizes',
+      'Do NOT make major decisions in this state — postpone where possible, your cortisol is distorting risk perception',
+      'Grounding Protocol: name 5 objects, 4 textures, 3 sounds, 2 smells, 1 taste — interrupts amygdala feedback loop',
+    ];
+    neuroAlignment = 'Generalized Anxiety Disorder (GAD) or Acute Stress Response with Somatic Features';
   }
 
   return {
@@ -140,11 +179,10 @@ function computeResult(answers: Record<string, string>): EvaluationResult {
     percentage,
     severity,
     condition,
+    conditionLabel,
     conditionDetail,
     catalysts,
     strategies,
-    symptomAlignment,
+    neuroAlignment,
   };
 }
-
-export { computeResult };

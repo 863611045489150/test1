@@ -3,12 +3,62 @@ import { QUESTIONS, computeResult, type EvaluationResult } from '@/lib/evaluatio
 import { playClickSound, playTransitionSound, triggerHaptic } from '@/lib/audio';
 import ResultsPage from './ResultsPage';
 
-type Phase =
-  | 'landing'
-  | 'questions'
-  | 'analyzing'
-  | 'results'
-  | 'no-weight';
+type Phase = 'landing' | 'questions' | 'analyzing' | 'results' | 'no-weight';
+
+interface ProgressRingProps {
+  current: number;
+  total: number;
+  size?: number;
+  strokeWidth?: number;
+}
+
+function ProgressRing({ current, total, size = 48, strokeWidth = 3 }: ProgressRingProps) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const progress = current / total;
+  const strokeDashoffset = circumference * (1 - progress);
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="#2A2A35"
+          strokeWidth={strokeWidth}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="url(#ringGradient)"
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 0.5s cubic-bezier(0.4,0,0.2,1)' }}
+        />
+        <defs>
+          <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#8B5CF6" />
+            <stop offset="100%" stopColor="#D946EF" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div
+        className="absolute inset-0 flex items-center justify-center"
+        style={{ transform: 'none' }}
+      >
+        <span className="text-white font-semibold" style={{ fontSize: size * 0.24 }}>
+          {current}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export default function SerenityApp() {
   const [phase, setPhase] = useState<Phase>('landing');
@@ -18,10 +68,16 @@ export default function SerenityApp() {
   const [animating, setAnimating] = useState(false);
   const [cardKey, setCardKey] = useState(0);
   const [result, setResult] = useState<EvaluationResult | null>(null);
+  const [watermarkGlowing, setWatermarkGlowing] = useState(false);
 
   const handleInteraction = useCallback(() => {
-    triggerHaptic();
+    triggerHaptic('standard');
     playClickSound();
+  }, []);
+
+  const pulseWatermark = useCallback(() => {
+    setWatermarkGlowing(true);
+    setTimeout(() => setWatermarkGlowing(false), 1200);
   }, []);
 
   const transitionTo = useCallback((next: Phase, delay = 350) => {
@@ -45,13 +101,15 @@ export default function SerenityApp() {
   };
 
   const handleOptionSelect = (value: string) => {
-    handleInteraction();
+    triggerHaptic('select');
+    playClickSound();
     setSelectedOption(value);
+    pulseWatermark();
   };
 
   const handleNext = () => {
     if (!selectedOption) return;
-    handleInteraction();
+    triggerHaptic('transition');
     playTransitionSound();
 
     const newAnswers = { ...answers, [QUESTIONS[currentQ].id]: selectedOption };
@@ -95,15 +153,21 @@ export default function SerenityApp() {
     transitionTo('landing');
   };
 
-  const progress = ((currentQ) / QUESTIONS.length) * 100;
+  const completedQuestions = Object.keys(answers).length + (phase === 'questions' && selectedOption ? 1 : 0);
 
   return (
     <div className="gradient-bg min-h-screen w-full flex flex-col relative">
-      <div className="watermark pt-4 pb-2 w-full relative z-10">
+      <div
+        className="watermark pt-4 pb-2 w-full relative z-10 transition-all duration-500"
+        style={watermarkGlowing ? {
+          color: 'rgba(196,181,253,0.7)',
+          textShadow: '0 0 12px rgba(139,92,246,0.8), 0 0 24px rgba(217,70,239,0.4)',
+        } : {}}
+      >
         DEVELOPED BY AARUSH
       </div>
 
-      <main className="flex-1 flex items-center justify-center px-4 py-8 relative z-10">
+      <main className="flex-1 flex items-center justify-center px-4 py-6 relative z-10">
         <div
           className={`w-full max-w-lg transition-opacity duration-300 ${animating ? 'opacity-0' : 'opacity-100'}`}
           key={cardKey}
@@ -120,7 +184,7 @@ export default function SerenityApp() {
               question={QUESTIONS[currentQ]}
               questionIndex={currentQ}
               totalQuestions={QUESTIONS.length}
-              progress={progress}
+              completedCount={completedQuestions}
               selectedOption={selectedOption}
               onSelect={handleOptionSelect}
               onNext={handleNext}
@@ -148,7 +212,7 @@ function LandingCard({ onYes, onNo }: { onYes: () => void; onNo: () => void }) {
   return (
     <div className="bento-card p-8 md:p-10 slide-enter">
       <div className="mb-6">
-        <span className="tag tag-purple mb-4 inline-flex">Mental Wellness Evaluation</span>
+        <span className="tag tag-purple mb-4 inline-flex">Neuro-Wellness Evaluation</span>
       </div>
 
       <h1 className="text-2xl md:text-3xl font-bold text-white mb-3 leading-tight">
@@ -156,11 +220,11 @@ function LandingCard({ onYes, onNo }: { onYes: () => void; onNo: () => void }) {
       </h1>
 
       <p className="text-[#94A3B8] text-sm mb-8 leading-relaxed">
-        This evaluation takes 2 minutes. Your responses are processed locally and never stored.
-        Answer honestly for the most accurate insight.
+        An 8-question deep-profile evaluation using weighted symptom clustering.
+        Your responses are processed locally and never stored.
       </p>
 
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-3 mb-8">
         <button
           onClick={onYes}
           className="gradient-btn flex-1 rounded-2xl py-4 px-6 text-base font-semibold"
@@ -175,14 +239,14 @@ function LandingCard({ onYes, onNo }: { onYes: () => void; onNo: () => void }) {
         </button>
       </div>
 
-      <div className="mt-8 pt-6 divider" />
-      <div className="mt-6 flex items-center gap-3">
-        <div className="flex gap-1">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="w-2 h-2 rounded-full bg-[#2A2A35]" />
+      <div className="divider" />
+      <div className="mt-5 flex items-center gap-4">
+        <div className="flex gap-1.5">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#2A2A35]" />
           ))}
         </div>
-        <span className="text-[#94A3B8] text-xs">4 targeted questions</span>
+        <span className="text-[#94A3B8] text-xs">8 deep-profile questions · 0–24 weighted score</span>
       </div>
     </div>
   );
@@ -196,12 +260,9 @@ function NoWeightCard({ onRestart }: { onRestart: () => void }) {
           ✦
         </div>
       </div>
-      <h2 className="text-2xl font-bold text-white mb-3">
-        That's a good sign.
-      </h2>
+      <h2 className="text-2xl font-bold text-white mb-3">Neural Equilibrium Detected.</h2>
       <p className="text-[#94A3B8] mb-8 leading-relaxed text-sm">
-        It sounds like you're in a stable place right now. That's worth acknowledging.
-        If things change, Serenity Check is always here.
+        Your baseline appears stable. That's worth acknowledging — equilibrium is a state that requires active maintenance. Return anytime.
       </p>
       <button onClick={onRestart} className="gradient-btn rounded-2xl py-4 px-8 text-base font-semibold">
         Return to start
@@ -210,11 +271,18 @@ function NoWeightCard({ onRestart }: { onRestart: () => void }) {
   );
 }
 
+const OPTION_COLORS: Record<string, string> = {
+  never: '#10B981',
+  rarely: '#F59E0B',
+  often: '#F97316',
+  constant: '#EF4444',
+};
+
 function QuestionCard({
   question,
   questionIndex,
   totalQuestions,
-  progress,
+  completedCount,
   selectedOption,
   onSelect,
   onNext,
@@ -222,41 +290,68 @@ function QuestionCard({
   question: typeof QUESTIONS[0];
   questionIndex: number;
   totalQuestions: number;
-  progress: number;
+  completedCount: number;
   selectedOption: string | null;
   onSelect: (v: string) => void;
   onNext: () => void;
 }) {
+  const isLast = questionIndex === totalQuestions - 1;
+
   return (
     <div className="bento-card p-6 md:p-8 slide-enter">
       <div className="flex items-center justify-between mb-5">
         <span className="tag tag-purple">{question.category}</span>
-        <span className="text-[#94A3B8] text-xs font-medium">
-          {questionIndex + 1} / {totalQuestions}
+        <ProgressRing current={completedCount} total={totalQuestions} size={44} strokeWidth={3} />
+      </div>
+
+      <div className="mb-1 flex items-center gap-2">
+        <span className="text-[#94A3B8] text-xs font-mono tracking-widest uppercase">
+          Scanning {questionIndex + 1} of {totalQuestions}
         </span>
+        <span className="scanning-dot" />
       </div>
 
-      <div className="progress-bar mb-6">
-        <div className="progress-fill" style={{ width: `${progress}%` }} />
-      </div>
-
-      <h2 className="text-xl md:text-2xl font-bold text-white mb-6 leading-snug">
+      <h2 className="text-lg md:text-xl font-bold text-white mb-6 leading-snug">
         {question.text}
       </h2>
 
-      <div className="flex flex-col gap-3 mb-6">
-        {question.options.map((option) => (
-          <button
-            key={option.value}
-            className={`option-card ${selectedOption === option.value ? 'selected' : ''}`}
-            onClick={() => onSelect(option.value)}
-          >
-            <span className="option-radio">
-              <span className="option-radio-dot" />
-            </span>
-            <span>{option.label}</span>
-          </button>
-        ))}
+      <div className="flex flex-col gap-2.5 mb-6">
+        {question.options.map((option) => {
+          const accentColor = OPTION_COLORS[option.value] ?? '#8B5CF6';
+          const isSelected = selectedOption === option.value;
+          return (
+            <button
+              key={option.value}
+              className={`option-card ${isSelected ? 'selected' : ''}`}
+              style={isSelected ? {
+                borderColor: `${accentColor}90`,
+                boxShadow: `0 0 0 1px ${accentColor}40, 0 0 24px ${accentColor}20`,
+                background: `${accentColor}0D`,
+              } : {}}
+              onClick={() => onSelect(option.value)}
+            >
+              <span
+                className="option-radio"
+                style={isSelected ? { borderColor: accentColor, background: accentColor } : {}}
+              >
+                <span className="option-radio-dot" />
+              </span>
+              <span className="flex-1">{option.label}</span>
+              {isSelected && (
+                <span
+                  className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                  style={{
+                    background: `${accentColor}20`,
+                    color: accentColor,
+                    border: `1px solid ${accentColor}40`,
+                  }}
+                >
+                  {option.weight}pt
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       <button
@@ -264,7 +359,7 @@ function QuestionCard({
         disabled={!selectedOption}
         className="gradient-btn w-full rounded-2xl py-4 px-6 text-base font-semibold disabled:opacity-30 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
       >
-        {questionIndex < totalQuestions - 1 ? 'Continue' : 'See my results'}
+        {isLast ? 'Generate Neuro-Report' : 'Next Signal'}
       </button>
     </div>
   );
@@ -272,42 +367,66 @@ function QuestionCard({
 
 function AnalyzingCard() {
   const [dots, setDots] = useState('');
+  const [stage, setStage] = useState(0);
+
+  const stages = [
+    'Scanning symptom clusters',
+    'Mapping neural correlates',
+    'Synthesizing neuro-report',
+  ];
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const dotsInterval = setInterval(() => {
       setDots((d) => (d.length >= 3 ? '' : d + '.'));
-    }, 500);
-    return () => clearInterval(interval);
+    }, 400);
+
+    const stageInterval = setInterval(() => {
+      setStage((s) => (s < stages.length - 1 ? s + 1 : s));
+    }, 900);
+
+    return () => {
+      clearInterval(dotsInterval);
+      clearInterval(stageInterval);
+    };
   }, []);
 
   return (
     <div className="bento-card p-10 md:p-14 slide-enter text-center">
       <div className="flex justify-center mb-8">
-        <div
-          className="w-20 h-20 rounded-full pulse-glow"
-          style={{
-            background: 'radial-gradient(circle at center, rgba(139,92,246,0.6) 0%, rgba(217,70,239,0.3) 50%, transparent 70%)',
-            border: '1px solid rgba(139,92,246,0.4)',
-          }}
-        />
+        <div className="relative">
+          <div
+            className="w-24 h-24 rounded-full pulse-glow"
+            style={{
+              background: 'radial-gradient(circle at 40% 40%, rgba(217,70,239,0.5) 0%, rgba(139,92,246,0.4) 40%, transparent 70%)',
+              border: '1px solid rgba(139,92,246,0.5)',
+            }}
+          />
+          <div
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: 'radial-gradient(circle at center, rgba(255,255,255,0.05) 0%, transparent 60%)',
+            }}
+          />
+        </div>
       </div>
 
       <h2 className="text-xl font-semibold text-white mb-2">
-        Analyzing your profile{dots}
+        {stages[stage]}{dots}
       </h2>
-      <p className="text-[#94A3B8] text-sm">
-        Cross-referencing your responses with clinical indicators
+      <p className="text-[#94A3B8] text-sm mb-8">
+        Cross-referencing your profile against clinical indicators
       </p>
 
-      <div className="mt-8 flex justify-center gap-2">
-        {[0, 1, 2].map((i) => (
+      <div className="flex justify-center gap-2">
+        {stages.map((_, i) => (
           <div
             key={i}
-            className="w-2 h-2 rounded-full"
+            className="h-1 rounded-full transition-all duration-700"
             style={{
-              background: 'linear-gradient(135deg, #8B5CF6, #D946EF)',
-              animation: `analyzingPulse 1.5s ease-in-out infinite`,
-              animationDelay: `${i * 0.25}s`,
+              width: i <= stage ? 24 : 8,
+              background: i <= stage
+                ? 'linear-gradient(90deg, #8B5CF6, #D946EF)'
+                : '#2A2A35',
             }}
           />
         ))}
