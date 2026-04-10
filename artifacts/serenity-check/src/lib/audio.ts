@@ -13,7 +13,7 @@ export function playClickSound() {
     const t = ctx.currentTime;
 
     const master = ctx.createGain();
-    master.gain.setValueAtTime(0.85, t);
+    master.gain.setValueAtTime(1.6, t);
     master.connect(ctx.destination);
 
     // Soft sub body — felt, not heard
