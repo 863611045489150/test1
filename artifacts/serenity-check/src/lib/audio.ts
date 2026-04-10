@@ -10,63 +10,44 @@ function getAudioCtx(): AudioContext {
 export function playClickSound() {
   try {
     const ctx = getAudioCtx();
+    const t = ctx.currentTime;
 
-    // --- Sub-bass thump layer ---
-    const bassOsc = ctx.createOscillator();
-    const bassGain = ctx.createGain();
-    bassOsc.connect(bassGain);
-    bassGain.connect(ctx.destination);
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.38, t);
+    master.connect(ctx.destination);
 
-    bassOsc.type = 'sine';
-    bassOsc.frequency.setValueAtTime(90, ctx.currentTime);
-    bassOsc.frequency.exponentialRampToValueAtTime(35, ctx.currentTime + 0.18);
+    // Soft sub body — felt, not heard
+    const body = ctx.createOscillator();
+    const bodyGain = ctx.createGain();
+    body.connect(bodyGain);
+    bodyGain.connect(master);
+    body.type = 'sine';
+    body.frequency.setValueAtTime(160, t);
+    body.frequency.exponentialRampToValueAtTime(60, t + 0.08);
+    bodyGain.gain.setValueAtTime(0, t);
+    bodyGain.gain.linearRampToValueAtTime(0.55, t + 0.006);
+    bodyGain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    body.start(t);
+    body.stop(t + 0.12);
 
-    bassGain.gain.setValueAtTime(0, ctx.currentTime);
-    bassGain.gain.linearRampToValueAtTime(0.9, ctx.currentTime + 0.012);
-    bassGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
-
-    bassOsc.start(ctx.currentTime);
-    bassOsc.stop(ctx.currentTime + 0.25);
-
-    // --- Mid punch layer ---
-    const midOsc = ctx.createOscillator();
-    const midGain = ctx.createGain();
-    midOsc.connect(midGain);
-    midGain.connect(ctx.destination);
-
-    midOsc.type = 'triangle';
-    midOsc.frequency.setValueAtTime(220, ctx.currentTime);
-    midOsc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.1);
-
-    midGain.gain.setValueAtTime(0, ctx.currentTime);
-    midGain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.008);
-    midGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.14);
-
-    midOsc.start(ctx.currentTime);
-    midOsc.stop(ctx.currentTime + 0.16);
-
-    // --- High "pop" click layer ---
-    const clickOsc = ctx.createOscillator();
+    // Crisp click transient — the satisfying "tap"
+    const click = ctx.createOscillator();
     const clickGain = ctx.createGain();
-    const filter = ctx.createBiquadFilter();
-    clickOsc.connect(filter);
-    filter.connect(clickGain);
-    clickGain.connect(ctx.destination);
-
-    filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(1200, ctx.currentTime);
-    filter.Q.setValueAtTime(1.5, ctx.currentTime);
-
-    clickOsc.type = 'sine';
-    clickOsc.frequency.setValueAtTime(880, ctx.currentTime);
-    clickOsc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.07);
-
-    clickGain.gain.setValueAtTime(0, ctx.currentTime);
-    clickGain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.006);
-    clickGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.09);
-
-    clickOsc.start(ctx.currentTime);
-    clickOsc.stop(ctx.currentTime + 0.1);
+    const clickFilter = ctx.createBiquadFilter();
+    click.connect(clickFilter);
+    clickFilter.connect(clickGain);
+    clickGain.connect(master);
+    clickFilter.type = 'bandpass';
+    clickFilter.frequency.setValueAtTime(2400, t);
+    clickFilter.Q.setValueAtTime(0.8, t);
+    click.type = 'sine';
+    click.frequency.setValueAtTime(1200, t);
+    click.frequency.exponentialRampToValueAtTime(600, t + 0.04);
+    clickGain.gain.setValueAtTime(0, t);
+    clickGain.gain.linearRampToValueAtTime(0.45, t + 0.003);
+    clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+    click.start(t);
+    click.stop(t + 0.07);
 
   } catch {
     // Audio not supported
@@ -77,13 +58,11 @@ export function triggerHaptic(type: 'select' | 'transition' | 'standard' = 'stan
   try {
     if (!('vibrate' in navigator)) return;
     if (type === 'select') {
-      // Strong double thump
-      navigator.vibrate([60, 30, 80]);
+      navigator.vibrate([40, 15, 55]);
     } else if (type === 'transition') {
-      // Triple pulse — premium confirm feel
-      navigator.vibrate([40, 20, 40, 20, 60]);
+      navigator.vibrate([25, 15, 30, 15, 45]);
     } else {
-      navigator.vibrate(30);
+      navigator.vibrate(20);
     }
   } catch {
     // Haptics not supported
@@ -93,40 +72,43 @@ export function triggerHaptic(type: 'select' | 'transition' | 'standard' = 'stan
 export function playTransitionSound() {
   try {
     const ctx = getAudioCtx();
+    const t = ctx.currentTime;
 
-    // Bass thump
-    const bassOsc = ctx.createOscillator();
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.3, t);
+    master.connect(ctx.destination);
+
+    // Warm low note
+    const bass = ctx.createOscillator();
     const bassGain = ctx.createGain();
-    bassOsc.connect(bassGain);
-    bassGain.connect(ctx.destination);
+    bass.connect(bassGain);
+    bassGain.connect(master);
+    bass.type = 'sine';
+    bass.frequency.setValueAtTime(110, t);
+    bass.frequency.exponentialRampToValueAtTime(55, t + 0.16);
+    bassGain.gain.setValueAtTime(0, t);
+    bassGain.gain.linearRampToValueAtTime(0.6, t + 0.008);
+    bassGain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+    bass.start(t);
+    bass.stop(t + 0.22);
 
-    bassOsc.type = 'sine';
-    bassOsc.frequency.setValueAtTime(70, ctx.currentTime);
-    bassOsc.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.2);
-
-    bassGain.gain.setValueAtTime(0, ctx.currentTime);
-    bassGain.gain.linearRampToValueAtTime(0.7, ctx.currentTime + 0.01);
-    bassGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
-
-    bassOsc.start(ctx.currentTime);
-    bassOsc.stop(ctx.currentTime + 0.28);
-
-    // Rising tone
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(440, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.1);
-
-    gain.gain.setValueAtTime(0, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
-
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.18);
+    // Gentle rising chime
+    const chime = ctx.createOscillator();
+    const chimeGain = ctx.createGain();
+    const chimeFilter = ctx.createBiquadFilter();
+    chime.connect(chimeFilter);
+    chimeFilter.connect(chimeGain);
+    chimeGain.connect(master);
+    chimeFilter.type = 'highpass';
+    chimeFilter.frequency.setValueAtTime(800, t);
+    chime.type = 'sine';
+    chime.frequency.setValueAtTime(660, t);
+    chime.frequency.exponentialRampToValueAtTime(880, t + 0.12);
+    chimeGain.gain.setValueAtTime(0, t);
+    chimeGain.gain.linearRampToValueAtTime(0.28, t + 0.01);
+    chimeGain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+    chime.start(t);
+    chime.stop(t + 0.22);
 
   } catch {
     // Audio not supported

@@ -352,40 +352,18 @@ function QuestionCard({
       </h2>
 
       <div className="flex flex-col gap-2.5 mb-6">
-        {question.options.map((option) => {
+        {question.options.map((option, i) => {
           const accentColor = OPTION_COLORS[option.value] ?? '#8B5CF6';
           const isSelected = selectedOption === option.value;
           return (
-            <button
+            <OptionButton
               key={option.value}
-              className={`option-card ${isSelected ? 'selected' : ''}`}
-              style={isSelected ? {
-                borderColor: `${accentColor}90`,
-                boxShadow: `0 0 0 1px ${accentColor}40, 0 0 24px ${accentColor}20`,
-                background: `${accentColor}0D`,
-              } : {}}
-              onClick={() => onSelect(option.value)}
-            >
-              <span
-                className="option-radio"
-                style={isSelected ? { borderColor: accentColor, background: accentColor } : {}}
-              >
-                <span className="option-radio-dot" />
-              </span>
-              <span className="flex-1">{option.label}</span>
-              {isSelected && (
-                <span
-                  className="text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                  style={{
-                    background: `${accentColor}20`,
-                    color: accentColor,
-                    border: `1px solid ${accentColor}40`,
-                  }}
-                >
-                  {option.weight}pt
-                </span>
-              )}
-            </button>
+              option={option}
+              accentColor={accentColor}
+              isSelected={isSelected}
+              index={i}
+              onSelect={() => onSelect(option.value)}
+            />
           );
         })}
       </div>
@@ -468,5 +446,126 @@ function AnalyzingCard() {
         ))}
       </div>
     </div>
+  );
+}
+
+function OptionButton({
+  option,
+  accentColor,
+  isSelected,
+  index,
+  onSelect,
+}: {
+  option: { value: string; label: string; weight: number };
+  accentColor: string;
+  isSelected: boolean;
+  index: number;
+  onSelect: () => void;
+}) {
+  const [pressed, setPressed] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), index * 72);
+    return () => clearTimeout(t);
+  }, [index]);
+
+  const transform = isSelected
+    ? 'scale(1)'
+    : pressed
+    ? 'scale(0.968) translateY(1px)'
+    : hovered
+    ? 'translateY(-2px)'
+    : 'translateY(0)';
+
+  const boxShadow = isSelected
+    ? `0 0 0 1.5px ${accentColor}80, 0 0 22px ${accentColor}28, 0 4px 16px rgba(0,0,0,0.3)`
+    : hovered
+    ? `0 0 0 1px rgba(139,92,246,0.22), 0 8px 22px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.12)`
+    : `0 2px 8px rgba(0,0,0,0.15)`;
+
+  const bg = isSelected
+    ? `${accentColor}10`
+    : hovered
+    ? 'rgba(139,92,246,0.04)'
+    : 'rgba(22,22,29,0.7)';
+
+  const borderColor = isSelected
+    ? `${accentColor}80`
+    : hovered
+    ? 'rgba(139,92,246,0.35)'
+    : '#2A2A35';
+
+  return (
+    <button
+      onClick={onSelect}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      onTouchStart={() => { setPressed(true); }}
+      onTouchEnd={() => { setPressed(false); }}
+      style={{
+        background: bg,
+        border: `1px solid ${borderColor}`,
+        borderRadius: 16,
+        padding: '14px 18px',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        width: '100%',
+        textAlign: 'left',
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        color: isSelected ? '#fff' : hovered ? '#E2E8F0' : '#94A3B8',
+        fontSize: 15,
+        fontWeight: isSelected ? 600 : 500,
+        transform: mounted ? transform : 'translateY(10px)',
+        opacity: mounted ? 1 : 0,
+        boxShadow,
+        transition: `transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.28s ease`,
+        outline: 'none',
+        willChange: 'transform',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
+      }}
+    >
+      <span
+        style={{
+          width: 18,
+          height: 18,
+          borderRadius: '50%',
+          border: `2px solid ${isSelected ? accentColor : hovered ? 'rgba(139,92,246,0.45)' : '#2A2A35'}`,
+          background: isSelected ? `linear-gradient(135deg, ${accentColor}, #D946EF)` : 'transparent',
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.22s ease',
+          boxShadow: isSelected ? `0 0 8px ${accentColor}55` : 'none',
+        }}
+      >
+        {isSelected && (
+          <span style={{
+            width: 6, height: 6, borderRadius: '50%', background: '#fff', display: 'block',
+            animation: 'selectedPop 0.26s cubic-bezier(0.34,1.56,0.64,1)',
+          }} />
+        )}
+      </span>
+      <span style={{ flex: 1 }}>{option.label}</span>
+      {isSelected && (
+        <span
+          style={{
+            fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999,
+            background: `${accentColor}20`, color: accentColor,
+            border: `1px solid ${accentColor}40`, flexShrink: 0,
+            animation: 'selectedPop 0.26s cubic-bezier(0.34,1.56,0.64,1)',
+          }}
+        >
+          {option.weight}pt
+        </span>
+      )}
+    </button>
   );
 }
