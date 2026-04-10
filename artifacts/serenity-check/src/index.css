@@ -261,6 +261,12 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
+  @keyframes selectedPop {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.4); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
   .analyzing-pulse {
     animation: analyzingPulse 1.5s ease-in-out infinite;
   }

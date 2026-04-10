@@ -12,6 +12,8 @@ type ChatMessage =
 
 const REPLY_OPTIONS = ['Not at all', 'A little', 'Quite a bit', 'Very much'];
 
+const OPTION_ICONS = ['○', '◔', '◕', '●'];
+
 export default function GuidedChat({ onBack }: Props) {
   const [step, setStep] = useState<'input' | 'chat' | 'done'>('input');
   const [userInput, setUserInput] = useState('');
@@ -20,6 +22,7 @@ export default function GuidedChat({ onBack }: Props) {
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [typingVisible, setTypingVisible] = useState(false);
   const [msgIdCounter, setMsgIdCounter] = useState(0);
+  const [selectedReply, setSelectedReply] = useState<string | null>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -60,21 +63,26 @@ export default function GuidedChat({ onBack }: Props) {
   };
 
   const handleReply = (reply: string) => {
+    if (selectedReply) return;
     triggerHaptic('select');
     playClickSound();
+    setSelectedReply(reply);
 
-    const id = nextId();
-    setMessages((prev) => [...prev, { role: 'user', text: reply, id }]);
+    setTimeout(() => {
+      const id = nextId();
+      setMessages((prev) => [...prev, { role: 'user', text: reply, id }]);
+      setSelectedReply(null);
 
-    const nextIdx = currentQIndex + 1;
-    setCurrentQIndex(nextIdx);
+      const nextIdx = currentQIndex + 1;
+      setCurrentQIndex(nextIdx);
 
-    if (nextIdx < questions.length) {
-      playTransitionSound();
-      setTimeout(() => showNextQuestion(questions, nextIdx, messages.length + 1), 600);
-    } else {
-      setTimeout(() => setStep('done'), 800);
-    }
+      if (nextIdx < questions.length) {
+        playTransitionSound();
+        setTimeout(() => showNextQuestion(questions, nextIdx, messages.length + 1), 600);
+      } else {
+        setTimeout(() => setStep('done'), 800);
+      }
+    }, 320);
   };
 
   const handleSubmit = () => {
@@ -301,20 +309,149 @@ export default function GuidedChat({ onBack }: Props) {
 
       {isWaitingForReply && (
         <div className="px-5 pb-5 pt-3 border-t border-[#2A2A35]">
+          <p className="text-[#4A4A5A] text-[10px] uppercase tracking-widest mb-2.5 text-center font-medium">Select your response</p>
           <div className="grid grid-cols-2 gap-2">
-            {REPLY_OPTIONS.map((option) => (
-              <button
-                key={option}
-                onClick={() => handleReply(option)}
-                className="option-card text-sm py-3 px-3 justify-center text-center"
-                style={{ borderRadius: 14 }}
-              >
-                {option}
-              </button>
-            ))}
+            {REPLY_OPTIONS.map((option, i) => {
+              const isSelected = selectedReply === option;
+              const isOther = selectedReply !== null && !isSelected;
+              return (
+                <ReplyButton
+                  key={option}
+                  label={option}
+                  icon={OPTION_ICONS[i]}
+                  intensity={i}
+                  isSelected={isSelected}
+                  isOther={isOther}
+                  onClick={() => handleReply(option)}
+                />
+              );
+            })}
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+interface ReplyButtonProps {
+  label: string;
+  icon: string;
+  intensity: number;
+  isSelected: boolean;
+  isOther: boolean;
+  onClick: () => void;
+}
+
+function ReplyButton({ label, icon, intensity, isSelected, isOther, onClick }: ReplyButtonProps) {
+  const [pressed, setPressed] = useState(false);
+  const [hovered, setHovered] = useState(false);
+
+  const glowColors = [
+    'rgba(100,116,139,0.5)',
+    'rgba(99,102,241,0.55)',
+    'rgba(139,92,246,0.6)',
+    'rgba(217,70,239,0.65)',
+  ];
+  const selectedBg = [
+    'linear-gradient(135deg, rgba(100,116,139,0.22), rgba(100,116,139,0.1))',
+    'linear-gradient(135deg, rgba(99,102,241,0.28), rgba(99,102,241,0.12))',
+    'linear-gradient(135deg, rgba(139,92,246,0.32), rgba(139,92,246,0.14))',
+    'linear-gradient(135deg, rgba(217,70,239,0.35), rgba(139,92,246,0.2))',
+  ];
+  const selectedBorder = [
+    'rgba(100,116,139,0.55)',
+    'rgba(99,102,241,0.6)',
+    'rgba(139,92,246,0.65)',
+    'rgba(217,70,239,0.7)',
+  ];
+
+  const transform = isSelected
+    ? 'scale(0.975)'
+    : pressed
+    ? 'scale(0.964) translateY(1px)'
+    : hovered
+    ? 'translateY(-2px)'
+    : 'translateY(0)';
+
+  const boxShadow = isSelected
+    ? `0 0 0 1.5px ${selectedBorder[intensity]}, 0 0 18px ${glowColors[intensity]}, 0 4px 24px rgba(0,0,0,0.35)`
+    : hovered && !isOther
+    ? `0 0 0 1px rgba(139,92,246,0.25), 0 8px 24px rgba(0,0,0,0.3), 0 2px 8px rgba(139,92,246,0.08)`
+    : `0 0 0 1px rgba(255,255,255,0.05), 0 2px 8px rgba(0,0,0,0.2)`;
+
+  const background = isSelected
+    ? selectedBg[intensity]
+    : hovered && !isOther
+    ? 'rgba(255,255,255,0.055)'
+    : 'rgba(255,255,255,0.028)';
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={!!isOther}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      onTouchStart={() => setPressed(true)}
+      onTouchEnd={() => setPressed(false)}
+      style={{
+        background,
+        border: `1px solid ${isSelected ? selectedBorder[intensity] : 'rgba(255,255,255,0.07)'}`,
+        borderRadius: 14,
+        padding: '11px 10px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        cursor: isOther ? 'default' : 'pointer',
+        transform,
+        boxShadow,
+        opacity: isOther ? 0.32 : 1,
+        transition: 'transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s ease, opacity 0.2s ease, background 0.2s ease, border-color 0.2s ease',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        width: '100%',
+        outline: 'none',
+      }}
+    >
+      <span
+        style={{
+          fontSize: 13,
+          color: isSelected ? selectedBorder[intensity] : 'rgba(148,163,184,0.7)',
+          transition: 'color 0.2s ease',
+          lineHeight: 1,
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </span>
+      <span
+        style={{
+          fontSize: 13,
+          fontWeight: isSelected ? 600 : 500,
+          color: isSelected ? '#fff' : 'rgba(226,232,240,0.85)',
+          transition: 'color 0.2s ease, font-weight 0.2s ease',
+          textAlign: 'left',
+          lineHeight: 1.3,
+        }}
+      >
+        {label}
+      </span>
+      {isSelected && (
+        <span
+          style={{
+            marginLeft: 'auto',
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            background: selectedBorder[intensity],
+            boxShadow: `0 0 6px ${glowColors[intensity]}`,
+            flexShrink: 0,
+            animation: 'selectedPop 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+          }}
+        />
+      )}
+    </button>
   );
 }
