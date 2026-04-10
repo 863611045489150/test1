@@ -109,43 +109,42 @@ export default function SerenityApp() {
     playClickSound();
     setSelectedOption(value);
     pulseWatermark();
-  };
 
-  const handleNext = () => {
-    if (!selectedOption) return;
-    triggerHaptic('transition');
-    playTransitionSound();
+    setTimeout(() => {
+      triggerHaptic('transition');
+      playTransitionSound();
 
-    const newAnswers = { ...answers, [QUESTIONS[currentQ].id]: selectedOption };
-    setAnswers(newAnswers);
+      const newAnswers = { ...answers, [QUESTIONS[currentQ].id]: value };
+      setAnswers(newAnswers);
 
-    if (currentQ < QUESTIONS.length - 1) {
-      setAnimating(true);
-      setTimeout(() => {
-        setCurrentQ((q) => q + 1);
-        setSelectedOption(null);
-        setCardKey((k) => k + 1);
-        setAnimating(false);
-      }, 350);
-    } else {
-      setAnimating(true);
-      setTimeout(() => {
-        setPhase('analyzing');
-        setCardKey((k) => k + 1);
-        setAnimating(false);
-      }, 350);
-
-      setTimeout(() => {
-        const evalResult = computeResult(newAnswers);
-        setResult(evalResult);
+      if (currentQ < QUESTIONS.length - 1) {
         setAnimating(true);
         setTimeout(() => {
-          setPhase('results');
+          setCurrentQ((q) => q + 1);
+          setSelectedOption(null);
           setCardKey((k) => k + 1);
           setAnimating(false);
         }, 350);
-      }, 2700);
-    }
+      } else {
+        setAnimating(true);
+        setTimeout(() => {
+          setPhase('analyzing');
+          setCardKey((k) => k + 1);
+          setAnimating(false);
+        }, 350);
+
+        setTimeout(() => {
+          const evalResult = computeResult(newAnswers);
+          setResult(evalResult);
+          setAnimating(true);
+          setTimeout(() => {
+            setPhase('results');
+            setCardKey((k) => k + 1);
+            setAnimating(false);
+          }, 350);
+        }, 2700);
+      }
+    }, 390);
   };
 
   const handleRestart = () => {
@@ -157,7 +156,6 @@ export default function SerenityApp() {
     transitionTo('landing');
   };
 
-  const completedQuestions = Object.keys(answers).length + (phase === 'questions' && selectedOption ? 1 : 0);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -196,10 +194,8 @@ export default function SerenityApp() {
               question={QUESTIONS[currentQ]}
               questionIndex={currentQ}
               totalQuestions={QUESTIONS.length}
-              completedCount={completedQuestions}
               selectedOption={selectedOption}
               onSelect={handleOptionSelect}
-              onNext={handleNext}
             />
           )}
           {phase === 'analyzing' && (
@@ -318,40 +314,45 @@ function QuestionCard({
   question,
   questionIndex,
   totalQuestions,
-  completedCount,
   selectedOption,
   onSelect,
-  onNext,
 }: {
   question: typeof QUESTIONS[0];
   questionIndex: number;
   totalQuestions: number;
-  completedCount: number;
   selectedOption: string | null;
   onSelect: (v: string) => void;
-  onNext: () => void;
 }) {
-  const isLast = questionIndex === totalQuestions - 1;
+  const progress = ((questionIndex) / totalQuestions) * 100;
 
   return (
     <div className="bento-card p-6 md:p-8 slide-enter">
-      <div className="flex items-center justify-between mb-5">
-        <span className="tag tag-purple">{question.category}</span>
-        <ProgressRing current={completedCount} total={totalQuestions} size={44} strokeWidth={3} />
-      </div>
-
-      <div className="mb-1 flex items-center gap-2">
-        <span className="text-[#94A3B8] text-xs font-mono tracking-widest uppercase">
-          Scanning {questionIndex + 1} of {totalQuestions}
-        </span>
-        <span className="scanning-dot" />
+      <div className="mb-5">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[#94A3B8] text-xs font-medium tracking-wide">
+            Question {questionIndex + 1} <span className="text-[#3A3A4A]">/ {totalQuestions}</span>
+          </span>
+          <span className="text-[#94A3B8] text-xs font-medium">
+            {Math.round(progress)}% done
+          </span>
+        </div>
+        <div className="w-full h-[3px] rounded-full overflow-hidden" style={{ background: '#1E1E28' }}>
+          <div
+            className="h-full rounded-full transition-all duration-500 ease-out"
+            style={{
+              width: `${progress}%`,
+              background: 'linear-gradient(90deg, #8B5CF6, #D946EF)',
+              boxShadow: progress > 0 ? '0 0 8px rgba(139,92,246,0.5)' : 'none',
+            }}
+          />
+        </div>
       </div>
 
       <h2 className="text-lg md:text-xl font-bold text-white mb-6 leading-snug">
         {question.text}
       </h2>
 
-      <div className="flex flex-col gap-2.5 mb-6">
+      <div className="flex flex-col gap-2.5">
         {question.options.map((option, i) => {
           const accentColor = OPTION_COLORS[option.value] ?? '#8B5CF6';
           const isSelected = selectedOption === option.value;
@@ -368,13 +369,11 @@ function QuestionCard({
         })}
       </div>
 
-      <button
-        onClick={onNext}
-        disabled={!selectedOption}
-        className="gradient-btn w-full rounded-2xl py-4 px-6 text-base font-semibold disabled:opacity-30 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
-      >
-        {isLast ? 'Generate Neuro-Report' : 'Next Signal'}
-      </button>
+      {!selectedOption && (
+        <p className="text-center text-[#3A3A4A] text-xs mt-4 tracking-wide">
+          Tap an option to continue
+        </p>
+      )}
     </div>
   );
 }
@@ -555,15 +554,14 @@ function OptionButton({
       </span>
       <span style={{ flex: 1 }}>{option.label}</span>
       {isSelected && (
-        <span
-          style={{
-            fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999,
-            background: `${accentColor}20`, color: accentColor,
-            border: `1px solid ${accentColor}40`, flexShrink: 0,
-            animation: 'selectedPop 0.26s cubic-bezier(0.34,1.56,0.64,1)',
-          }}
-        >
-          {option.weight}pt
+        <span style={{
+          width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          animation: 'selectedPop 0.26s cubic-bezier(0.34,1.56,0.64,1)',
+        }}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M2.5 7L5.5 10L11.5 4" stroke={accentColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
         </span>
       )}
     </button>
