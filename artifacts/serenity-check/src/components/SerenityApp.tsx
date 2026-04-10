@@ -2,8 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { QUESTIONS, computeResult, type EvaluationResult } from '@/lib/evaluation';
 import { playClickSound, playTransitionSound, triggerHaptic } from '@/lib/audio';
 import ResultsPage from './ResultsPage';
+import GuidedChat from './GuidedChat';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-type Phase = 'landing' | 'questions' | 'analyzing' | 'results' | 'no-weight';
+const queryClient = new QueryClient();
+
+type Phase = 'landing' | 'questions' | 'analyzing' | 'results' | 'no-weight' | 'guided-chat';
 
 interface ProgressRingProps {
   current: number;
@@ -156,6 +160,7 @@ export default function SerenityApp() {
   const completedQuestions = Object.keys(answers).length + (phase === 'questions' && selectedOption ? 1 : 0);
 
   return (
+    <QueryClientProvider client={queryClient}>
     <div className="gradient-bg min-h-screen w-full flex flex-col relative">
       <div
         className="watermark pt-4 pb-2 w-full relative z-10 transition-all duration-500"
@@ -174,10 +179,17 @@ export default function SerenityApp() {
           style={{ animation: animating ? undefined : 'slideEnter 0.45s cubic-bezier(0.25,0.46,0.45,0.94) forwards' }}
         >
           {phase === 'landing' && (
-            <LandingCard onYes={handleLandingYes} onNo={handleLandingNo} />
+            <LandingCard
+              onYes={handleLandingYes}
+              onNo={handleLandingNo}
+              onGuide={() => { handleInteraction(); transitionTo('guided-chat'); }}
+            />
           )}
           {phase === 'no-weight' && (
             <NoWeightCard onRestart={handleRestart} />
+          )}
+          {phase === 'guided-chat' && (
+            <GuidedChat onBack={handleRestart} />
           )}
           {phase === 'questions' && (
             <QuestionCard
@@ -205,10 +217,11 @@ export default function SerenityApp() {
         </p>
       </footer>
     </div>
+    </QueryClientProvider>
   );
 }
 
-function LandingCard({ onYes, onNo }: { onYes: () => void; onNo: () => void }) {
+function LandingCard({ onYes, onNo, onGuide }: { onYes: () => void; onNo: () => void; onGuide: () => void }) {
   return (
     <div className="bento-card p-8 md:p-10 slide-enter">
       <div className="mb-6">
@@ -219,12 +232,12 @@ function LandingCard({ onYes, onNo }: { onYes: () => void; onNo: () => void }) {
         Are you carrying a psychological or emotional weight today?
       </h1>
 
-      <p className="text-[#94A3B8] text-sm mb-8 leading-relaxed">
+      <p className="text-[#94A3B8] text-sm mb-6 leading-relaxed">
         An 8-question deep-profile evaluation using weighted symptom clustering.
         Your responses are processed locally and never stored.
       </p>
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-8">
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <button
           onClick={onYes}
           className="gradient-btn flex-1 rounded-2xl py-4 px-6 text-base font-semibold"
@@ -239,7 +252,30 @@ function LandingCard({ onYes, onNo }: { onYes: () => void; onNo: () => void }) {
         </button>
       </div>
 
-      <div className="divider" />
+      <button
+        onClick={onGuide}
+        className="w-full rounded-2xl py-3.5 px-6 text-sm font-medium flex items-center justify-center gap-2 transition-all duration-300"
+        style={{
+          background: 'rgba(139,92,246,0.07)',
+          border: '1px solid rgba(139,92,246,0.2)',
+          color: '#C4B5FD',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'rgba(139,92,246,0.13)';
+          e.currentTarget.style.borderColor = 'rgba(139,92,246,0.4)';
+          e.currentTarget.style.boxShadow = '0 0 16px rgba(139,92,246,0.12)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'rgba(139,92,246,0.07)';
+          e.currentTarget.style.borderColor = 'rgba(139,92,246,0.2)';
+          e.currentTarget.style.boxShadow = 'none';
+        }}
+      >
+        <span style={{ fontSize: 14 }}>✦</span>
+        Talk to a guide instead
+      </button>
+
+      <div className="mt-5 divider" />
       <div className="mt-5 flex items-center gap-4">
         <div className="flex gap-1.5">
           {Array.from({ length: 8 }).map((_, i) => (

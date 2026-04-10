@@ -14,3 +14,23 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Uses AI to generate 6-7 empathetic follow-up questions based on user input
+ * @summary Generate follow-up questions
+ */
+export const generateGuidedQuestionsBodyUserInputMax = 1000;
+
+export const GenerateGuidedQuestionsBody = zod.object({
+  userInput: zod.string().min(1).max(generateGuidedQuestionsBodyUserInputMax),
+});
+
+export const generateGuidedQuestionsResponseQuestionsMin = 6;
+export const generateGuidedQuestionsResponseQuestionsMax = 7;
+
+export const GenerateGuidedQuestionsResponse = zod.object({
+  questions: zod
+    .array(zod.string())
+    .min(generateGuidedQuestionsResponseQuestionsMin)
+    .max(generateGuidedQuestionsResponseQuestionsMax),
+});

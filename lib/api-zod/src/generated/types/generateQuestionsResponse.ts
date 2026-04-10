@@ -5,17 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-export interface HealthStatus {
-  status: string;
-}
-
-export interface GenerateQuestionsBody {
-  /**
-   * @minLength 1
-   * @maxLength 1000
-   */
-  userInput: string;
-}
 
 export interface GenerateQuestionsResponse {
   /**
@@ -23,8 +12,4 @@ export interface GenerateQuestionsResponse {
    * @maxItems 7
    */
   questions: string[];
-}
-
-export interface ErrorResponse {
-  error: string;
 }

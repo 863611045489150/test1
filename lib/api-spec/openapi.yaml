@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: guided-chat
+    description: AI-powered guided wellness chat
 paths:
   /healthz:
     get:
@@ -24,6 +26,39 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /guided-chat/questions:
+    post:
+      operationId: generateGuidedQuestions
+      tags: [guided-chat]
+      summary: Generate follow-up questions
+      description: Uses AI to generate 6-7 empathetic follow-up questions based on user input
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateQuestionsBody"
+      responses:
+        "200":
+          description: Generated questions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateQuestionsResponse"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +69,32 @@ components:
       required:
         - status
 
+    GenerateQuestionsBody:
+      type: object
+      properties:
+        userInput:
+          type: string
+          minLength: 1
+          maxLength: 1000
+      required:
+        - userInput
+
+    GenerateQuestionsResponse:
+      type: object
+      properties:
+        questions:
+          type: array
+          items:
+            type: string
+          minItems: 6
+          maxItems: 7
+      required:
+        - questions
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

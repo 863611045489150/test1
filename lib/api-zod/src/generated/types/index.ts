@@ -6,4 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./errorResponse";
+export * from "./generateQuestionsBody";
+export * from "./generateQuestionsResponse";
 export * from "./healthStatus";
