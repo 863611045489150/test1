@@ -109,42 +109,43 @@ export default function SerenityApp() {
     playClickSound();
     setSelectedOption(value);
     pulseWatermark();
+  };
 
-    setTimeout(() => {
-      triggerHaptic('transition');
-      playTransitionSound();
+  const handleNext = () => {
+    if (!selectedOption) return;
+    triggerHaptic('transition');
+    playTransitionSound();
 
-      const newAnswers = { ...answers, [QUESTIONS[currentQ].id]: value };
-      setAnswers(newAnswers);
+    const newAnswers = { ...answers, [QUESTIONS[currentQ].id]: selectedOption };
+    setAnswers(newAnswers);
 
-      if (currentQ < QUESTIONS.length - 1) {
+    if (currentQ < QUESTIONS.length - 1) {
+      setAnimating(true);
+      setTimeout(() => {
+        setCurrentQ((q) => q + 1);
+        setSelectedOption(null);
+        setCardKey((k) => k + 1);
+        setAnimating(false);
+      }, 350);
+    } else {
+      setAnimating(true);
+      setTimeout(() => {
+        setPhase('analyzing');
+        setCardKey((k) => k + 1);
+        setAnimating(false);
+      }, 350);
+
+      setTimeout(() => {
+        const evalResult = computeResult(newAnswers);
+        setResult(evalResult);
         setAnimating(true);
         setTimeout(() => {
-          setCurrentQ((q) => q + 1);
-          setSelectedOption(null);
+          setPhase('results');
           setCardKey((k) => k + 1);
           setAnimating(false);
         }, 350);
-      } else {
-        setAnimating(true);
-        setTimeout(() => {
-          setPhase('analyzing');
-          setCardKey((k) => k + 1);
-          setAnimating(false);
-        }, 350);
-
-        setTimeout(() => {
-          const evalResult = computeResult(newAnswers);
-          setResult(evalResult);
-          setAnimating(true);
-          setTimeout(() => {
-            setPhase('results');
-            setCardKey((k) => k + 1);
-            setAnimating(false);
-          }, 350);
-        }, 2700);
-      }
-    }, 390);
+      }, 2700);
+    }
   };
 
   const handleRestart = () => {
@@ -196,6 +197,7 @@ export default function SerenityApp() {
               totalQuestions={QUESTIONS.length}
               selectedOption={selectedOption}
               onSelect={handleOptionSelect}
+              onNext={handleNext}
             />
           )}
           {phase === 'analyzing' && (
@@ -316,13 +318,16 @@ function QuestionCard({
   totalQuestions,
   selectedOption,
   onSelect,
+  onNext,
 }: {
   question: typeof QUESTIONS[0];
   questionIndex: number;
   totalQuestions: number;
   selectedOption: string | null;
   onSelect: (v: string) => void;
+  onNext: () => void;
 }) {
+  const isLast = questionIndex === totalQuestions - 1;
   const progress = ((questionIndex) / totalQuestions) * 100;
 
   return (
@@ -369,11 +374,13 @@ function QuestionCard({
         })}
       </div>
 
-      {!selectedOption && (
-        <p className="text-center text-[#3A3A4A] text-xs mt-4 tracking-wide">
-          Tap an option to continue
-        </p>
-      )}
+      <button
+        onClick={onNext}
+        disabled={!selectedOption}
+        className="gradient-btn w-full rounded-2xl py-4 px-6 text-base font-semibold mt-4 disabled:opacity-30 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+      >
+        {isLast ? 'Generate Neuro-Report' : 'Next'}
+      </button>
     </div>
   );
 }
